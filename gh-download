@@ -14,26 +14,31 @@ Arguments:
 
 Examples:
     gh download yuler/gh-download README.md gh-download
-    gh download yuler/gh-download .github/ gh-download
+    gh download cli/cli .github/
 EOF
+}
+
+download_file() {
+    echo "file $1 downloading..."
+    curl --location --create-dirs https://github.com/$repo/raw/$default_branch/$1 -o $1
 }
 
 download() {
     if [[ $1 =~ .*/ ]]; then
-        # gh api repos/cli/cli/git/trees/trunk\?recursive=1 --jq ".tree | length"
-        # ss gh api repos/cli/cli/git/trees/trunk\?recursive=1 --jq ".tree[] | select(.type == \"blob\") | .path.startswith(\".github\") | length"
-        tree=$(gh api repos/$repo/git/trees/$default_branch?recursive=1 --jq ".tree[] | select(.type == \"blob\") | .path | select(startswith(\"$1\"))")
-        echo $tree
-        echo "TODO: downloading folder $1 ..."
+        files=$(gh api repos/$repo/git/trees/$default_branch?recursive=1 --jq ".tree[] | select(.type == \"blob\") | .path | select(startswith(\"$1\"))")
+        echo "folder $1 downloading..."
+        for file in $files; do
+            download_file $file
+        done
     else
-        echo "downloading file $1 ..."
-        exec curl --remote-name --location https://github.com/$repo/raw/$default_branch/$1
+        download_file $1
     fi
 }
 
 # main
 if [[ -z $1 || $1 == '-h' || $1 == '--help' ]]; then
     help
+    exit 0
 fi
 
 repo=$1
