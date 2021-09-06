@@ -4,12 +4,47 @@ IFS=$'\n\t'
 
 help() {
     cat <<-EOF
-Usage: gh download <folders | files>
+Usage: gh download <repo> <folders | files>
+
+> Download folders or files from GitHub repo
+
+Arguments:
+    <repo>               like: \`username/repo\`, if username is missing, it will use the gh's username
+    <folders | files>    folders must end with \`/\`, otherwise they are file
 
 Examples:
-    gh download yuler/gh-download/README.md
+    gh download yuler/gh-download README.md gh-download
+    gh download yuler/gh-download .github/ gh-download
 EOF
 }
 
+download() {
+    if [[ $1 =~ .*/ ]]; then
+        echo "TODO: downloading folder $1 ..."
+    else
+        echo "downloading file $1 ..."
+        exec curl --remote-name --location https://github.com/$repo/raw/$default_branch/$1
+    fi
+}
+
 # main
-help
+if [[ -z $1 || $1 == '-h' || $1 == '--help' ]]; then
+    help
+fi
+
+repo=$1
+if [[ ! $repo =~ .*/.* ]]; then
+    username=$(gh api user --jq ".login")
+    repo=$username/$repo
+    echo "GitHub repo: $repo"
+fi
+
+targets=$@
+shift 1
+
+default_branch=$(gh api repos/${repo} --jq ".default_branch")
+
+while (("$#")); do
+    download $1
+    shift
+done

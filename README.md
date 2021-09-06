@@ -8,6 +8,13 @@
 gh extension install yuler/gh-download
 ```
 
+## Usage
+
+```bash
+# Create alias dl => download
+gh alias set dl "download"
+```
+
 ## Refs
 
 - https://download-directory.github.io/
