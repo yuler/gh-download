@@ -1,0 +1,15 @@
+#!/bin/bash
+set -eo pipefail
+IFS=$'\n\t'
+
+help() {
+    cat <<-EOF
+Usage: gh download <folders | files>
+
+Examples:
+    gh download yuler/gh-download/README.md
+EOF
+}
+
+# main
+help
