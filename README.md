@@ -13,6 +13,8 @@ gh extension install yuler/gh-download
 ```bash
 # Create alias dl => download
 gh alias set dl "download"
+# Download folders
+gh dl cli/cli .github/
 ```
 
 ## Refs

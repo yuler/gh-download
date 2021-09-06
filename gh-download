@@ -6,7 +6,7 @@ help() {
     cat <<-EOF
 Usage: gh download <repo> <folders | files>
 
-> Download folders or files from GitHub repo
+> Download folders or files from GitHub repo with default branch
 
 Arguments:
     <repo>               like: \`username/repo\`, if username is missing, it will use the gh's username
@@ -20,6 +20,10 @@ EOF
 
 download() {
     if [[ $1 =~ .*/ ]]; then
+        # gh api repos/cli/cli/git/trees/trunk\?recursive=1 --jq ".tree | length"
+        # ss gh api repos/cli/cli/git/trees/trunk\?recursive=1 --jq ".tree[] | select(.type == \"blob\") | .path.startswith(\".github\") | length"
+        tree=$(gh api repos/$repo/git/trees/$default_branch?recursive=1 --jq ".tree[] | select(.type == \"blob\") | .path | select(startswith(\"$1\"))")
+        echo $tree
         echo "TODO: downloading folder $1 ..."
     else
         echo "downloading file $1 ..."
