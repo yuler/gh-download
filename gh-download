@@ -20,7 +20,7 @@ EOF
 
 download_file() {
     echo "file $1 downloading..."
-    curl --location --create-dirs https://github.com/$repo/raw/$default_branch/$1 -o $1
+    curl --location --create-dirs --oauth2-bearer $token https://raw.githubusercontent.com/$repo/$default_branch/$1 -o $1
 }
 
 download() {
@@ -41,9 +41,11 @@ if [[ -z $1 || $1 == '-h' || $1 == '--help' ]]; then
     exit 0
 fi
 
+token=$(gh config get -h github.com oauth_token)
+
 repo=$1
 if [[ ! $repo =~ .*/.* ]]; then
-    username=$(gh api user --jq ".login")
+    username=$(gh config get -h github.com user)
     repo=$username/$repo
     echo "GitHub repo: $repo"
 fi
