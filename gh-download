@@ -2,7 +2,7 @@
 set -eo pipefail
 IFS=$'\n\t'
 
-help() {
+usage() {
     cat <<-EOF
 Usage: gh download <repo> <folders | files>
 
@@ -12,15 +12,24 @@ Arguments:
     <repo>               like: \`username/repo\`, if username is missing, it will use the gh's username
     <folders | files>    folders must end with \`/\`, otherwise they are file
 
+Options:
+    --output <path>      output path, default is \`./\`
+
 Examples:
     gh download yuler/gh-download README.md gh-download
     gh download cli/cli .github/
+    gh download yuler/actions ci/nodejs.yml --output ./.github/workflows/
 EOF
 }
 
 download_file() {
+    if [[ -z "output" ]]; then
+        output="$1"
+    else
+        output="$output/$(basename $1)"
+    fi
     echo "file $1 downloading..."
-    curl --location --create-dirs --oauth2-bearer $token https://raw.githubusercontent.com/$repo/$default_branch/$1 -o $1
+    curl --location --create-dirs --oauth2-bearer $token https://raw.githubusercontent.com/$repo/$default_branch/$1 -o $output
 }
 
 download() {
@@ -35,23 +44,40 @@ download() {
     fi
 }
 
+# parse `--output` option
+POSITIONAL=()
+while [[ $# -gt 0 ]]; do
+    key="$1"
+
+    case $key in
+    --output)
+        output="$2"
+        shift # past argument
+        shift # past value
+        ;;
+    *)                     # unknown option
+        POSITIONAL+=("$1") # save it in an array for later
+        shift              # past argument
+        ;;
+    esac
+done
+set -- "${POSITIONAL[@]}" # restore positional parameters
+
 # main
 if [[ -z $1 || $1 == '-h' || $1 == '--help' ]]; then
-    help
+    usage
     exit 0
 fi
 
 token=$(gh config get -h github.com oauth_token)
 
 repo=$1
+shift
 if [[ ! $repo =~ .*/.* ]]; then
     username=$(gh config get -h github.com user)
     repo=$username/$repo
     echo "GitHub repo: $repo"
 fi
-
-targets=$@
-shift 1
 
 default_branch=$(gh api repos/${repo} --jq ".default_branch")
 
