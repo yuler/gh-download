@@ -44,7 +44,7 @@ set -- "${POSITIONAL[@]}" # restore positional parameters
 download_file() {
     echo "file $1 downloading..."
     local dest
-    if [[ -z "output" ]]; then
+    if [[ -z $output ]]; then
         dest="$1"
     else
         dest="$output/$1"
