@@ -28,7 +28,7 @@ gh alias set dl "download"
 # Download files
 gh download yuler/gh-download README.md gh-download
 # Download `.github` folders from `cli/cli` repo
-gh dl cli/cli .github/
+gh dl cli/cli .github
 ```
 
 ## Related

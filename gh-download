@@ -1,88 +1,126 @@
 #!/usr/bin/env bash
+
+# refs: http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -eo pipefail
 IFS=$'\n\t'
 
+CLI=$(basename "${BASH_SOURCE[0]}")
+
 usage() {
     cat <<-EOF
-Usage: gh download <repo> <folders | files>
+Usage: $CLI <repo> <folders | files>
 
 > Download folders or files from GitHub repo with default branch
 
 Arguments:
     <repo>               like: \`username/repo\`, if username is missing, it will use the gh's username
-    <folders | files>    folders must end with \`/\`, otherwise they are file
+    <folders | files>    folders or files
 
 Options:
-    --output <path>      output path, default is \`./\`
+    -o, --output <path>      output path, default is \`./\`
 
 Examples:
     gh download yuler/gh-download README.md gh-download
-    gh download cli/cli .github/
-    gh download yuler/actions ci/nodejs.yml --output ./.github/workflows/
+    gh download cli/cli .github
+    gh download yuler/actions ci/nodejs.yml --output ./.github/workflows
 EOF
+    exit
 }
 
-# parse `--output` option
-POSITIONAL=()
-while [[ $# -gt 0 ]]; do
-    key="$1"
+version() {
+    echo "$CLI v0.2.0"
+    exit
+}
 
-    case $key in
-    --output)
-        output="$2"
-        shift # past argument
-        shift # past value
-        ;;
-    *)                     # unknown option
-        POSITIONAL+=("$1") # save it in an array for later
-        shift              # past argument
-        ;;
-    esac
-done
-set -- "${POSITIONAL[@]}" # restore positional parameters
+# refs: https://stackoverflow.com/questions/192249/how-do-i-parse-command-line-arguments-in-bash
+parse_options() {
+    POSITIONAL=()
+    while [[ $# -gt 0 ]]; do
+        local key="$1"
 
+        case $key in
+        -h | --help)
+            usage
+            ;;
+        -v | --version)
+            version
+            ;;
+        --verbose)
+            set -x
+            shift
+            ;;
+        -b | --branch)
+            branch="$2"
+            shift
+            shift
+            ;;
+        # TODO:
+        -o | --output)
+            output="$2"
+            shift
+            shift
+            ;;
+        *)
+            POSITIONAL+=("$1")
+            shift
+            ;;
+        esac
+    done
+    set -- "${POSITIONAL[@]}"
+}
+
+parse_options "$@"
+
+# TODO: output dir/file name
 download_file() {
-    echo "file $1 downloading..."
+    file=$1
+    echo "File \`$file\` downloading..."
     local dest
     if [[ -z $output ]]; then
-        dest="$1"
+        dest=$file
     else
-        dest="$output/$1"
+        dest="$output/$file"
     fi
-    curl --location --create-dirs --oauth2-bearer $token https://raw.githubusercontent.com/$repo/$default_branch/$1 -o $dest
+    curl --location --create-dirs --oauth2-bearer "$token" "https://raw.githubusercontent.com/$repo/$branch/$1" -o "$dest"
 }
 
 download() {
-    if [[ $1 == */ ]]; then
-        echo "folder $1 downloading..."
-        files=$(gh api repos/$repo/git/trees/$default_branch?recursive=1 --jq ".tree[] | select(.type == \"blob\") | .path | select(startswith(\"$1\"))")
+    local path=$1
+    local folder
+
+    # Check path is folder?
+    folder=$(gh api "repos/$repo/git/trees/$branch?recursive=1" --jq ".tree[] | select(.type == \"tree\") | .path | select(.==\"$path\")")
+
+    if [[ $folder ]]; then
+        echo "Folder $1 downloading..."
+        files=$(gh api "repos/$repo/git/trees/$branch?recursive=1" --jq ".tree[] | select(.type == \"blob\") | .path | select(startswith(\"$folder/\"))")
         for file in $files; do
-            download_file $file
+            download_file "$file"
         done
     else
-        download_file $1
+        download_file "$path"
     fi
 }
 
-# main
-if [[ -z $1 || $1 == '-h' || $1 == '--help' ]]; then
-    usage
-    exit 0
-fi
-
+# Main
 token=$(gh config get -h github.com oauth_token)
 
 repo=$1
 shift
+
 if [[ ! $repo =~ .*/.* ]]; then
     username=$(gh config get -h github.com user)
     repo=$username/$repo
 fi
-echo "GitHub repo: $repo"
 
-default_branch=$(gh api repos/${repo} --jq ".default_branch")
+if [[ ! $branch ]]; then
+    branch=$(gh api "repos/$repo" --jq .default_branch)
+fi
+
+echo "Repo: $repo"
+echo "Branch: $branch"
 
 while (("$#")); do
-    download $1
+    download "$1"
     shift
 done
