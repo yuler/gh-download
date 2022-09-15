@@ -17,7 +17,11 @@ Arguments:
     <...paths>           folders or files path
 
 Options:
-    -o, --output <path>      output path, default is \`./\`
+    -h, --help           output usage
+    -v, --version        output version
+    --verbose            enable debug
+    -b, --branch         branch
+    -o, --output <path>  output path, default is \`./\`
 
 Examples:
     gh download yuler/gh-download README.md gh-download
@@ -32,50 +36,13 @@ version() {
     exit
 }
 
-# refs: https://stackoverflow.com/questions/192249/how-do-i-parse-command-line-arguments-in-bash
-# TODO: Move `getopts` refs: https://man7.org/linux/man-pages/man1/getopts.1p.html
-parse_options() {
-    POSITIONAL=()
-    while [[ $# -gt 0 ]]; do
-        local key="$1"
-
-        case $key in
-        -h | --help)
-            usage
-            ;;
-        -v | --version)
-            version
-            ;;
-        --verbose)
-            set -x
-            shift
-            ;;
-        -b | --branch)
-            branch="$2"
-            shift
-            shift
-            ;;
-        -o | --output)
-            output="$2"
-            shift
-            shift
-            ;;
-        *)
-            POSITIONAL+=("$1")
-            shift
-            ;;
-        esac
-    done
-    set -- "${POSITIONAL[@]}"
-}
-
-parse_options "$@"
-
 # TODO: output dir/file name
 download_file() {
-    file=$1
-    echo "File \`$file\` downloading..."
+    local file=$1
     local dest
+
+    echo "File \`$file\` downloading..."
+
     if [[ -z $output ]]; then
         dest=$file
     else
@@ -84,29 +51,82 @@ download_file() {
     curl --location --create-dirs --oauth2-bearer "$token" "https://raw.githubusercontent.com/$repo/$branch/$1" -o "$dest"
 }
 
-download() {
-    local path=$1
-    local folder
+download_folder() {
+    local folder=$1
 
-    # Check path is folder?
-    folder=$(gh api "repos/$repo/git/trees/$branch?recursive=1" --jq ".tree[] | select(.type == \"tree\") | .path | select(.==\"$path\")")
+    echo "Folder $folder downloading..."
+    files=$(gh api "repos/$repo/git/trees/$branch?recursive=1" --jq ".tree[] | select(.type == \"blob\") | .path | select(startswith(\"$folder/\"))")
+    for file in $files; do
+        download_file "$file"
+    done
 
-    if [[ $folder ]]; then
-        echo "Folder $1 downloading..."
-        files=$(gh api "repos/$repo/git/trees/$branch?recursive=1" --jq ".tree[] | select(.type == \"blob\") | .path | select(startswith(\"$folder/\"))")
-        for file in $files; do
-            download_file "$file"
-        done
-    else
-        download_file "$path"
-    fi
 }
 
 # Main
+# refs: https://stackoverflow.com/questions/192249/how-do-i-parse-command-line-arguments-in-bash
+# TODO: Move `getopts` refs: https://man7.org/linux/man-pages/man1/getopts.1p.html
+POSITIONAL=()
+while [[ $# -gt 0 ]]; do
+    key="$1"
+
+    case $key in
+    -h | --help)
+        usage
+        ;;
+    -v | --version)
+        version
+        ;;
+    --verbose)
+        set -x
+        shift
+        ;;
+    -b | --branch)
+        branch="$2"
+        shift
+        shift
+        ;;
+    -o | --output)
+        output="$2"
+        shift
+        shift
+        ;;
+    *)
+        POSITIONAL+=("$1")
+        shift
+        ;;
+    esac
+done
+set -- "${POSITIONAL[@]}"
+
 token=$(gh config get -h github.com oauth_token)
 
-repo=$1
-shift
+# TODO: check url from clipboard
+# Parse argments from url
+# Example: https://github.com/yuler/actions/blob/3541e20e6f195a812b0e775058224a6d6f4b9fc1/ci/nodejs.yml
+regex="^https://github.com/([A-Za-z0-9_-]*)/([A-Za-z0-9_-]*)/(tree|blob)/([A-Za-z0-9_-]*)/(.*)"
+if [[ $# == 1 ]]; then
+    if [[ $1 =~ $regex ]]; then
+        repo="${BASH_REMATCH[1]}/${BASH_REMATCH[2]}"
+
+        branch="${BASH_REMATCH[4]}"
+        path="${BASH_REMATCH[5]}"
+
+        # TODO: Duplicated content below
+        echo "Repo: $repo"
+        echo "Branch: $branch"
+
+        case "${BASH_REMATCH[3]}" in
+        tree) download_folder "$path" ;;
+        blob) download_file "$path" ;;
+        esac
+        exit
+    else
+        echo "Parse url $1 error."
+    fi
+else
+    repo=$1
+    shift
+fi
 
 if [[ ! $repo =~ .*/.* ]]; then
     username=$(gh config get -h github.com user)
@@ -121,6 +141,20 @@ echo "Repo: $repo"
 echo "Branch: $branch"
 
 while (("$#")); do
-    download "$1"
+    path=$1
+
+    # Check path is folder?
+    if [[ $path =~ .*/$ ]]; then
+        folder=${path%/}
+    else
+        folder=$(gh api "repos/$repo/git/trees/$branch?recursive=1" --jq ".tree[] | select(.type == \"tree\") | .path | select(.==\"$path\")")
+    fi
+
+    if [[ $folder ]]; then
+        download_folder "$folder"
+    else
+        download_file "$path"
+    fi
+
     shift
 done
