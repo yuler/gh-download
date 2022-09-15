@@ -30,6 +30,8 @@ gh alias set dl "download"
 gh download yuler/gh-download README.md gh-download
 # Download `.github` folders from `cli/cli` repo
 gh dl cli/cli .github
+# Download from github.com url
+gh dl https://github.com/yuler/actions/blob/3541e20e6f195a812b0e775058224a6d6f4b9fc1/ci/nodejs.yml
 ```
 
 ## Related
