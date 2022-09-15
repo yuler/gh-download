@@ -16,9 +16,9 @@ gh extension install yuler/gh-download
 ## How it works
 
 - Get GitHub token by `gh config get -h github.com oauth_token` command, for support private repository
-- Normailize repo url
-- Use [GitHub `get a true` API] filter path, If `path` end with `/` means download folder, otherwise download file.
-- Traverse the file and download it via curl with GitHub token
+- Normalize repository url
+- Use [GitHub `get a tree` API] filter path
+- If path is folder, Traverse the folder and download it via curl with GitHub token
 
 ## Usage
 
@@ -41,4 +41,4 @@ gh dl cli/cli .github
 [github cli]: https://github.com/cli/cli
 [download-directory.github.io]: https://download-directory.github.io/
 [gh-cp]: https://github.com/mislav/gh-cp
-[github `get a true` api]: https://docs.github.com/en/rest/reference/git#get-a-tree
+[github `get a tree` api]: https://docs.github.com/en/rest/reference/git#get-a-tree

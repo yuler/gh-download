@@ -8,13 +8,13 @@ CLI=$(basename "${BASH_SOURCE[0]}")
 
 usage() {
     cat <<-EOF
-Usage: $CLI <repo> <folders | files>
+Usage: $CLI <repo> <...paths>
 
-> Download folders or files from GitHub repo with default branch
+> Download folders or files from GitHub repo without cloning
 
 Arguments:
     <repo>               like: \`username/repo\`, if username is missing, it will use the gh's username
-    <folders | files>    folders or files
+    <...paths>           folders or files path
 
 Options:
     -o, --output <path>      output path, default is \`./\`
@@ -33,6 +33,7 @@ version() {
 }
 
 # refs: https://stackoverflow.com/questions/192249/how-do-i-parse-command-line-arguments-in-bash
+# TODO: Move `getopts` refs: https://man7.org/linux/man-pages/man1/getopts.1p.html
 parse_options() {
     POSITIONAL=()
     while [[ $# -gt 0 ]]; do
@@ -54,7 +55,6 @@ parse_options() {
             shift
             shift
             ;;
-        # TODO:
         -o | --output)
             output="$2"
             shift
