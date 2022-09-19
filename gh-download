@@ -33,7 +33,7 @@ EOF
 }
 
 version() {
-    echo "$CLI v0.3.0"
+    echo "$CLI v0.4.0"
     exit
 }
 
