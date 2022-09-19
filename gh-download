@@ -21,12 +21,13 @@ Options:
     -v, --version        output version
     --verbose            enable debug
     -b, --branch         branch
-    -o, --output <path>  output path, default is \`./\`
+    --outdir <path>      outdir path. Default is download current location and reserved repo dir path
+    --outfile <path>     only support download single file
 
 Examples:
     gh download yuler/gh-download README.md gh-download
     gh download cli/cli .github
-    gh download yuler/actions ci/nodejs.yml --output ./.github/workflows
+    gh download yuler/actions ci/nodejs.yml --outdir .github/workflows
 EOF
     exit
 }
@@ -36,17 +37,19 @@ version() {
     exit
 }
 
-# TODO: output dir/file name
 download_file() {
     local file=$1
-    local dest
+    local dest=$2
 
     echo "File \`$file\` downloading..."
 
-    if [[ -z $output ]]; then
+    if [[ -z $dest ]]; then
         dest=$file
-    else
-        dest="$output/$file"
+    fi
+    if [[ -n $outdir ]]; then
+        echo "$outdir"
+        echo "$file"
+        dest="$outdir/$(basename "$file")"
     fi
     curl --location --create-dirs --oauth2-bearer "$token" "https://raw.githubusercontent.com/$repo/$branch/$1" -o "$dest"
 }
@@ -59,7 +62,6 @@ download_folder() {
     for file in $files; do
         download_file "$file"
     done
-
 }
 
 # Main
@@ -85,8 +87,13 @@ while [[ $# -gt 0 ]]; do
         shift
         shift
         ;;
-    -o | --output)
-        output="$2"
+    --outdir)
+        outdir="$2"
+        shift
+        shift
+        ;;
+    --outfile)
+        outfile="$2"
         shift
         shift
         ;;
@@ -140,6 +147,13 @@ fi
 echo "Repo: $repo"
 echo "Branch: $branch"
 
+# Download single file
+if [[ $# == 1 && $outfile ]]; then
+    download_file "$1" "$outfile"
+    exit
+fi
+
+# Iterate arguments
 while (("$#")); do
     path=$1
 
