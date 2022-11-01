@@ -14,6 +14,7 @@ Usage: $CLI <repo> <...paths>
 
 Arguments:
     <repo>               like: \`username/repo\`, if username is missing, it will use the gh's username
+    <url>                github url starts with https://github.com
     <...paths>           folders or files path
 
 Options:
