@@ -14,6 +14,7 @@ Usage: $CLI <repo> <...paths>
 
 Arguments:
     <repo>               like: \`username/repo\`, if username is missing, it will use the gh's username
+    <url>                github url starts with https://github.com
     <...paths>           folders or files path
 
 Options:
@@ -110,7 +111,7 @@ token=$(gh config get -h github.com oauth_token)
 # TODO: check url from clipboard
 # Parse argments from url
 # Example: https://github.com/yuler/actions/blob/3541e20e6f195a812b0e775058224a6d6f4b9fc1/ci/nodejs.yml
-regex="^https://github.com/([A-Za-z0-9_-]*)/([A-Za-z0-9_-]*)/(tree|blob)/([A-Za-z0-9_-]*)/(.*)"
+regex="^https://github.com/([A-Za-z0-9_-]*)/([A-Za-z0-9._-]*)/(tree|blob)/([A-Za-z0-9._-]*)/(.*)"
 if [[ $# == 1 ]]; then
     if [[ $1 =~ $regex ]]; then
         repo="${BASH_REMATCH[1]}/${BASH_REMATCH[2]}"
