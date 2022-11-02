@@ -27,7 +27,7 @@ gh extension install yuler/gh-download
 # Create alias dl => download
 gh alias set dl "download"
 # Download files
-gh download yuler/gh-download README.md gh-download
+gh dl yuler/gh-download README.md gh-download
 # Download `.github` folders from `cli/cli` repo
 gh dl cli/cli .github
 # Download from github.com url

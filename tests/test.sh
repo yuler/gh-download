@@ -7,4 +7,4 @@
 ../gh-download yuler/actions nodejs/ci.yml --outfile .github/workflows/nodejs.yml
 
 # test `url`
-../gh-download https://github.com/mrdoob/three.js/tree/dev/examples
+../gh-download https://github.com/vercel/next.js/tree/v13.0.1/examples/basic-export --outdir basic-export

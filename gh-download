@@ -8,14 +8,14 @@ CLI=$(basename "${BASH_SOURCE[0]}")
 
 usage() {
     cat <<-EOF
-Usage: $CLI <repo> <...paths>
+Usage: $CLI <repo> <...paths> or $CLI <url>
 
 > Download folders or files from GitHub repo without cloning
 
 Arguments:
     <repo>               like: \`username/repo\`, if username is missing, it will use the gh's username
-    <url>                github url starts with https://github.com
     <...paths>           folders or files path
+    <url>                github url starts with https://github.com
 
 Options:
     -h, --help           output usage
