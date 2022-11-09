@@ -21,8 +21,8 @@ Options:
     -h, --help           output usage
     -v, --version        output version
     --verbose            enable debug
-    -b, --branch         branch
-    --outdir <path>      outdir path. Default is download current location and reserved repo dir path
+    -b, --branch         branch or tag name
+    --outdir <path>      only support download single path(file/folder). Default is download current location and reserved repo dir path
     --outfile <path>     only support download single file
 
 Examples:
@@ -38,31 +38,55 @@ version() {
     exit
 }
 
-download_file() {
+URLS=()
+collection_file() {
     local file=$1
-    local dest=$2
+    local folder=$2
+    local dest=$3
 
-    echo "File \`$file\` downloading..."
+    # Normalize $folder must start with `./`
+    if [[ ! $folder ]]; then
+        folder="$(dirname "$file")"
+    fi
 
-    if [[ -z $dest ]]; then
+    # Normalize $dest
+    if [[ ! $dest && $outdir && $folder ]]; then
+        if [[ $folder == "." ]]; then
+            dest="$outdir/$file"
+        else
+            dest=${file/$folder/$outdir}
+        fi
+    fi
+    if [[ $outfile ]]; then
+        dest=$outfile
+    fi
+    if [[ ! $dest ]]; then
         dest=$file
     fi
-    if [[ -n $outdir ]]; then
-        echo "$outdir"
-        echo "$file"
-        dest="$outdir/$(basename "$file")"
-    fi
-    curl --location --create-dirs --oauth2-bearer "$token" "https://raw.githubusercontent.com/$repo/$branch/$1" -o "$dest"
+
+    echo "Collection file: \`$file\` downloading to \`$dest\`"
+
+    URLS+=("https://raw.githubusercontent.com/$repo/$branch/$file" "$dest")
 }
 
-download_folder() {
+collection_folder() {
     local folder=$1
 
-    echo "Folder $folder downloading..."
+    echo "Collection folder: \`$folder\` downloading..."
     files=$(gh api "repos/$repo/git/trees/$branch?recursive=1" --jq ".tree[] | select(.type == \"blob\") | .path | select(startswith(\"$folder/\"))")
     for file in $files; do
-        download_file "$file"
+        collection_file "$file" "$folder"
     done
+}
+
+# Parallel curl
+function download() {
+    parallel_args='--parallel-immediate --parallel'
+    for ((i = 0; i < ${#URLS[@]}; i += 2)); do
+        parallel_args+=" ${URLS[i]} --output ${URLS[i + 1]}"
+    done
+    command="curl --location --create-dirs --oauth2-bearer $token $parallel_args"
+    eval "$command"
 }
 
 # Main
@@ -124,9 +148,10 @@ if [[ $# == 1 ]]; then
         echo "Branch: $branch"
 
         case "${BASH_REMATCH[3]}" in
-        tree) download_folder "$path" ;;
-        blob) download_file "$path" ;;
+        tree) collection_folder "$path" ;;
+        blob) collection_file "$path" ;;
         esac
+        download
         exit
     else
         echo "Parse url $1 error."
@@ -148,11 +173,31 @@ fi
 echo "Repo: $repo"
 echo "Branch: $branch"
 
-# Download single file
-if [[ $# == 1 && $outfile ]]; then
-    download_file "$1" "$outfile"
+# Download single path
+if [[ $# == 1 ]]; then
+    path=$1
+
+    # TODO: Duplicated content below
+    # Check path is folder?
+    if [[ $path =~ .*/$ ]]; then
+        folder=${path%/}
+    else
+        folder=$(gh api "repos/$repo/git/trees/$branch?recursive=1" --jq ".tree[] | select(.type == \"tree\") | .path | select(.==\"$path\")")
+    fi
+
+    if [[ $folder ]]; then
+        collection_folder "$folder"
+    else
+        collection_file "$path"
+    fi
+
+    download
     exit
 fi
+
+# Unset `--outfile` option & `--outdir` option
+unset outfile
+unset outdir
 
 # Iterate arguments
 while (("$#")); do
@@ -166,10 +211,11 @@ while (("$#")); do
     fi
 
     if [[ $folder ]]; then
-        download_folder "$folder"
+        collection_folder "$folder"
     else
-        download_file "$path"
+        collection_file "$path"
     fi
 
     shift
 done
+download
