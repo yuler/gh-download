@@ -21,6 +21,7 @@ Options:
     -h, --help           output usage
     -v, --version        output version
     --verbose            enable debug
+    -d, --dry-run        reports what would have been downloaded, but do not download anything
     -b, --branch         branch or tag name
     --outdir <path>      only support download single path(file/folder). Default is download current location and reserved repo dir path
     --outfile <path>     only support download single file
@@ -81,6 +82,9 @@ collection_folder() {
 
 # Parallel curl
 function download() {
+    if [[ $dry_run ]]; then
+        exit
+    fi
     parallel_args='--parallel-immediate --parallel'
     for ((i = 0; i < ${#URLS[@]}; i += 2)); do
         parallel_args+=" ${URLS[i]} --output ${URLS[i + 1]}"
@@ -105,6 +109,10 @@ while [[ $# -gt 0 ]]; do
         ;;
     --verbose)
         set -x
+        shift
+        ;;
+    -d | --dry-run)
+        dry_run=true
         shift
         ;;
     -b | --branch)
