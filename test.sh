@@ -26,3 +26,6 @@
 # test case: multiple path should ignore `--outfile` & `--outdir`
 ./gh-download -d vuejs/core package.json LICENSE --outfile xxx
 ./gh-download -d vercel/next.js examples/basic-export examples/basic-css --outdir xxx
+
+# test case: with escape for filename, #11
+./gh-download -d https://github.com/VeryGoodOpenSource/dart_frog/tree/main/examples/echo
