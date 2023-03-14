@@ -157,7 +157,7 @@ while [[ $# -gt 0 ]]; do
 done
 set -- "${POSITIONAL[@]}"
 
-token=$(gh config get -h github.com oauth_token)
+token=$(gh auth token -h github.com)
 
 # TODO: check url from clipboard
 # Parse argments from url
