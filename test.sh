@@ -27,5 +27,6 @@
 ./gh-download -d vuejs/core package.json LICENSE --outfile xxx
 ./gh-download -d vercel/next.js examples/basic-export examples/basic-css --outdir xxx
 
-# test case: with escape for filename, #11
+# test case: with escape for filename, #11, #16
 ./gh-download -d https://github.com/VeryGoodOpenSource/dart_frog/tree/main/examples/echo
+./gh-download -d https://github.com/ryanoasis/nerd-fonts/tree/master/patched-fonts/UbuntuMono/Regular/complete
